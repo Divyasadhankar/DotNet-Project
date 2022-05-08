@@ -1,19 +1,32 @@
-<Project Sdk="Microsoft.NET.Sdk">
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build-env
 
-  <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
+WORKDIR /app
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
-    <PackageReference Include="xunit" Version="2.4.0" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
-    <PackageReference Include="coverlet.collector" Version="1.2.0" />
-  </ItemGroup>
+WORKDIR /src
 
-  <ItemGroup>
-    <ProjectReference Include="..\GandoTechConsoleApp\GandoTechConsoleApp.csproj" />
-  </ItemGroup>
+COPY *.sln ./
 
-</Project>
+COPY GandoTechConsoleApp/GandoTechConsoleApp.csproj /src/GandoTechConsoleApp/
+
+COPY GandoTechConsoleApp.Tests/GandoTechConsoleApp.Tests.csproj /src/GandoTechConsoleApp.Tests/
+
+RUN dotnet restore ./GandoTechConsoleApp
+RUN dotnet restore ./GandoTechConsoleApp.Tests
+
+COPY . .
+
+WORKDIR /src/
+
+RUN dotnet build -c Release GandoTechConsoleApp -o /app/build
+
+RUN dotnet test -c release GandoTechConsoleApp.Tests -o /app/test
+
+RUN dotnet publish -c Release GandoTechConsoleApp -o /app/publish
+
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1
+
+WORKDIR /app
+
+COPY --from=build-env /app/publish .
+
+ENTRYPOINT ["dotnet","GandoTechConsoleApp.dll"]
